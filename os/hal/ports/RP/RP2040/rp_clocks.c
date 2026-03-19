@@ -88,12 +88,20 @@ static void set_vreg(void) {
  * @note    See RP2040 Datasheet 2.15.3.1 Clock Instances (Table 205)
  */
 void rp_clock_init(void) {
+  /* Configure tick generator for ~1 us ticks from ROSC BEFORE unreset
+     so TIMER0 starts counting immediately when it comes out of reset. */
+  WATCHDOG->TICK = WATCHDOG_TICK_ENABLE | (RP_ROSC_ASSUMED_HZ / 1000000U);
 
   /* Start early tick generator for safety module timeouts. */
   rp_peripheral_unreset(RESETS_ALLREG_TIMER0);
 
-  /* Configure tick generator for ~1 us ticks. */
-  WATCHDOG->TICK = WATCHDOG_TICK_ENABLE | (RP_ROSC_ASSUMED_HZ / RP_ROSC_ASSUMED_HZ);
+  /* Spin until TIMER0 is visibly incrementing — guarantees the timer
+     is usable for halRegWaitAnySet32X timeout checks. */
+  {
+    volatile uint32_t t0 = TIMER0->TIMERAWL;
+    while (TIMER0->TIMERAWL == t0) {
+    }
+  }
 
   /* Clear clock resus that may be in an unkown state */
   CLOCKS->RESUS.CTRL = 0U;
