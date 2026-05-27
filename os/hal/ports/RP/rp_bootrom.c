@@ -25,6 +25,9 @@
 #include "hal.h"
 #include "rp_bootrom.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 /*===========================================================================*/
 /* Module local definitions.                                                 */
 /*===========================================================================*/
@@ -265,3 +268,5 @@ bool rpRomGetBitApiX(rp_rom_bit_api_t *apip) {
 #endif
 
 /** @} */
+
+#pragma GCC diagnostic pop
