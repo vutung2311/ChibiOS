@@ -76,15 +76,15 @@ static void start_core1(void) {
    * off, and rises again once it has been released and is running.*/
 
   /* QMK/Vial Modification:
-     Commented out the active PSM hardware reset block.
-     Using register-level Core 1 PSM reset on soft resets/flashes deadlocks
-     the split keyboard controller hardware. We rely on the standard
-     ROM bootloader FIFO wait-for-launch handshake below instead. */
-#if 0
-  PSM->SET.FRCE_OFF = PSM_ANY_PROC1;         /* assert reset to core1      */
-  while (PSM->DONE & PSM_ANY_PROC1) {}       /* wait until it powers off   */
-  PSM->CLR.FRCE_OFF = PSM_ANY_PROC1;         /* release — core1 enters ROM */
-#endif
+     We cherry-pick the safe Core 1 reset sequence from the Raspberry Pi Pico SDK.
+     Instead of busy-waiting on the hardware-status PSM->DONE bit (which deadlocks
+     on warm reboots/flashing on this keyboard controller), we assert the Core 1
+     reset bit, read once to let the bus write propagate, and immediately clear it.
+     This safely forces Core 1 back to its ROM wait-for-launch loop on warm resets
+     without any risk of infinite deadlocks. */
+  PSM->SET.FRCE_OFF = PSM_ANY_PROC1;         /* force Core 1 into reset */
+  (void)PSM->FRCE_OFF;                       /* read once to settle write */
+  PSM->CLR.FRCE_OFF = PSM_ANY_PROC1;         /* release Core 1 to enter ROM */
 
   /* Starting core 1.*/
   seq = 0;
