@@ -74,9 +74,17 @@ static void start_core1(void) {
    * releases core1 into the ROM boot-path which immediately enters the
    * wait-for-launch loop.  The PSM DONE bit falls while the core is held
    * off, and rises again once it has been released and is running.*/
+
+  /* QMK/Vial Modification:
+     Commented out the active PSM hardware reset block.
+     Using register-level Core 1 PSM reset on soft resets/flashes deadlocks
+     the split keyboard controller hardware. We rely on the standard
+     ROM bootloader FIFO wait-for-launch handshake below instead. */
+#if 0
   PSM->SET.FRCE_OFF = PSM_ANY_PROC1;         /* assert reset to core1      */
   while (PSM->DONE & PSM_ANY_PROC1) {}       /* wait until it powers off   */
   PSM->CLR.FRCE_OFF = PSM_ANY_PROC1;         /* release — core1 enters ROM */
+#endif
 
   /* Starting core 1.*/
   seq = 0;
@@ -112,6 +120,13 @@ static void start_core1(void) {
 void hal_lld_init(void) {
 
 #if RP_NO_INIT == FALSE
+  /* QMK/Vial Modification:
+     We restore the safe clock initialization block here.
+     Since we commented out the dangerous early peripheral resets in board.c
+     to avoid XIP flash/bus deadlocks, we initialize system clocks (PLLs/XOSC)
+     safely here before unresetting the bus fabric. */
+  rp_clock_init();
+
   rp_peripheral_unreset(RESETS_ALLREG_BUSCTRL);
   rp_peripheral_unreset(RESETS_ALLREG_SYSINFO);
   rp_peripheral_unreset(RESETS_ALLREG_SYSCFG);

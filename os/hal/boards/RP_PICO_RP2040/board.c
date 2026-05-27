@@ -54,6 +54,13 @@ void __early_init(void) {
   /* Disable the bootrom watchdog. */
   WATCHDOG->CLR.CTRL = WATCHDOG_CTRL_ENABLE;
 
+  /* QMK/Vial Modification:
+     Commented out the early peripheral reset and clock initialization.
+     Resetting the bus fabric (BUSCTRL) or system config (SYSCFG) while the CPU is
+     executing code directly from external flash (XIP) triggers immediate bus/CPU deadlocks.
+     Instead, we restore the old, stable boot flow: leave the bootrom's working configurations
+     untouched early on, and call rp_clock_init() later in hal_lld_init() where it is safe. */
+#if 0
 #if RP_NO_INIT == FALSE
   /* Reset of all peripherals.
      Note, IO_QSPI, PADS_QSPI, PLL_SYS and PLL_USB are not reset because
@@ -64,6 +71,7 @@ void __early_init(void) {
                          RESETS_ALLREG_PLL_SYS  | RESETS_ALLREG_PLL_USB));
 
   rp_clock_init();
+#endif
 #endif
 }
 
